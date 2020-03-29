@@ -6,12 +6,6 @@ from matplotlib import pyplot as plt
 random.seed(1)
 
 
-def X_distance(position1, position2):
-  x1, y1 = position1
-  x2, y2 = position2
-  return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-
 class Node:
   def __init__(self, position, parent, cost):
     self.position = position
@@ -24,10 +18,11 @@ class Node:
 
 
 class Tree:
-  def __init__(self, root):
+  def __init__(self, root, distance_metric):
     self.max_nodes = 10000
     self.nodes = [root]
     self.goal_node_idxs = []
+    self.distance_metric = distance_metric
 
   def add(self, node):
     if len(self.nodes) >= self.max_nodes:
@@ -42,7 +37,7 @@ class Tree:
     near_nodes_idx = []
     near_nodes_ds = []
     for i, node in enumerate(self.nodes):
-      this_ds = X_distance(node.position, position)
+      this_ds = self.distance_metric(node.position, position)
       if this_ds < radius:
         near_nodes_idx.append(i)
         near_nodes_ds.append(this_ds)
@@ -54,7 +49,7 @@ class Tree:
     nearest_idx = None
     nearest_dist = 10e9
     for i, node in enumerate(self.nodes):
-      this_dist = X_distance(node.position, position)
+      this_dist = self.distance_metric(node.position, position)
       if this_dist < nearest_dist:
         nearest_idx = i
         nearest_dist = this_dist
@@ -103,6 +98,12 @@ class World:
       obstacles.append(obstacle)
     return obstacles
 
+  @staticmethod
+  def X_distance(position1, position2):
+    x1, y1 = position1
+    x2, y2 = position2
+    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
   def is_collision(self, position):
     def is_collision_obstacle(position, obstacle):
       x, y = position
@@ -121,11 +122,11 @@ class World:
       return self.is_collision(X0)
 
     # Number of intermediate points, including origin.
-    path_count = math.ceil(X_distance(X0, X1) / self.precision)
+    path_count = math.ceil(self.X_distance(X0, X1) / self.precision)
     x0, y0 = X0
     x1, y1 = X1
-    dx = (x1-x0) / path_count
-    dy = (y1-y0) / path_count
+    dx = (x1 - x0) / path_count
+    dy = (y1 - y0) / path_count
 
     for i in range(path_count):
       xi = x0 + i * dx
@@ -155,7 +156,7 @@ class World:
     return (random.uniform(*self.xrange), random.uniform(*self.yrange))
 
   def steer(self, root_position, goal_position):
-    d = X_distance(root_position, goal_position)
+    d = self.X_distance(root_position, goal_position)
     dt = self.dq / d  # parametric distance from root to goal
 
     x_root, y_root = root_position
@@ -170,7 +171,8 @@ class World:
 
   def rrt_star(self):
     root = Node(self.initial_position, None, 0)
-    tree = Tree(root)
+    distance_metric = self.X_distance
+    tree = Tree(root, distance_metric)
 
     # TODO Handle case where root is already at goal.
     # TODO Handle case where root is in collision.
@@ -196,10 +198,10 @@ class World:
         n_nearest = tree.nodes[nearest_node_idx]
         best_parent_idx = nearest_node_idx
         # Minimum cost to get to X_new through neighbors.
-        cost_through_best_parent = n_nearest.cost + X_distance(n_nearest.position, X_new)
+        cost_through_best_parent = n_nearest.cost + self.X_distance(n_nearest.position, X_new)
         for neighbor_idx in neighbor_idxs:
           n_neighbor = tree.nodes[neighbor_idx]
-          new_cost_through_neighbor = n_neighbor.cost + X_distance(n_neighbor.position, X_new)
+          new_cost_through_neighbor = n_neighbor.cost + self.X_distance(n_neighbor.position, X_new)
           if new_cost_through_neighbor < cost_through_best_parent and not self.has_collision(
                   n_neighbor.position, X_new):
             best_parent_idx = neighbor_idx
@@ -215,8 +217,8 @@ class World:
         for neighbor_idx in neighbor_idxs:
           # TODO don't search over best_cost_idx (the best parent for n_new)
           n_neighbor = tree.nodes[neighbor_idx]
-          neighbor_cost_through_new = n_new.cost + X_distance(n_neighbor.position,
-                                                              n_new.position)
+          neighbor_cost_through_new = n_new.cost + self.X_distance(n_neighbor.position,
+                                                                   n_new.position)
           if neighbor_cost_through_new < n_neighbor.cost and not self.has_collision(
                   n_new.position, n_neighbor.position):
             # Best path for neighbor is now through x_new
