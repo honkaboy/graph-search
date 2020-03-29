@@ -63,12 +63,11 @@ class Tree:
     return nearest_idx
 
 
-# TODO is obstacle checking working?
 class World:
   def __init__(self):
     self.xrange = [-10, 10]
     self.yrange = [-10, 10]
-    self.initial_position = (0, 0)
+    self.initial_position = (-8, 0)
     # Refers to Z dimension.
     self.goal_pose_z = 0
     # Distance at which to create new nodes from network.
@@ -83,7 +82,7 @@ class World:
     for ob in self.obstacles:
       xmin, ymin, xmax, ymax = ob
       ax.plot(np.array([xmin, xmin, xmax, xmax, xmin]),
-              np.array([ymin, ymax, ymin, ymax, ymin]), 'red')
+              np.array([ymin, ymax, ymax, ymin, ymin]), 'red')
 
   @staticmethod
   def make_obstacles(xrange, yrange, num_obstacles):
@@ -105,8 +104,6 @@ class World:
     return obstacles
 
   def is_collision(self, position):
-    is_collision = False
-
     def is_collision_obstacle(position, obstacle):
       x, y = position
       xmin, ymin, xmax, ymax = obstacle
@@ -115,8 +112,9 @@ class World:
       return False
 
     for obstacle in self.obstacles:
-      is_collision = is_collision_obstacle(position, obstacle)
-    return is_collision
+      if is_collision_obstacle(position, obstacle):
+        return True
+    return False
 
   def has_collision(self, X0, X1):
     if X0 == X1:
@@ -126,8 +124,8 @@ class World:
     path_count = math.ceil(X_distance(X0, X1) / self.precision)
     x0, y0 = X0
     x1, y1 = X1
-    dx = x0 / path_count
-    dy = y0 / path_count
+    dx = (x1-x0) / path_count
+    dy = (y1-y0) / path_count
 
     for i in range(path_count):
       xi = x0 + i * dx
@@ -148,7 +146,7 @@ class World:
 
   # In our state space, the robot has DOFs X, Y, and "pose" / output state z = f(X) = f(x,y)
   def z(self, position):
-    g_x, g_y = 4, 0
+    g_x, g_y = 7.5, 0
     x, y = position
     z = (x - g_x)**2 + (y - g_y)**2
     return z
@@ -174,11 +172,13 @@ class World:
     root = Node(self.initial_position, None, 0)
     tree = Tree(root)
 
-    # TODO check if root at goal already.
+    # TODO Handle case where root is already at goal.
+    # TODO Handle case where root is in collision.
+    # TODO Handle case where goal is in collision.
 
     fig, ax = plt.subplots()
 
-    max_expansion = 400
+    max_expansion = 1000
     for i in range(max_expansion):
       # TODO Add occasional greedy choice.
       X_random = self.random_X()
