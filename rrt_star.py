@@ -63,6 +63,7 @@ class Tree:
     return nearest_idx
 
 
+# TODO is obstacle checking working?
 class World:
   def __init__(self):
     self.xrange = [-10, 10]
@@ -71,12 +72,18 @@ class World:
     # Refers to Z dimension.
     self.goal_pose_z = 0
     # Distance at which to create new nodes from network.
-    self.dq = 0.5
+    self.dq = 1.0
     # Precision of collision checking along paths between nodes.
     self.precision = 0.25
 
-    num_obstacles = 2
+    num_obstacles = 3
     self.obstacles = self.make_obstacles(self.xrange, self.yrange, num_obstacles)
+
+  def plot_obstacles(self, ax):
+    for ob in self.obstacles:
+      xmin, ymin, xmax, ymax = ob
+      ax.plot(np.array([xmin, xmin, xmax, xmax, xmin]),
+              np.array([ymin, ymax, ymin, ymax, ymin]), 'red')
 
   @staticmethod
   def make_obstacles(xrange, yrange, num_obstacles):
@@ -143,7 +150,7 @@ class World:
   def z(self, position):
     g_x, g_y = 4, 0
     x, y = position
-    z = (x-g_x)**2 + (y-g_y)**2
+    z = (x - g_x)**2 + (y - g_y)**2
     return z
 
   def random_X(self):
@@ -171,7 +178,7 @@ class World:
 
     fig, ax = plt.subplots()
 
-    max_expansion = 100
+    max_expansion = 400
     for i in range(max_expansion):
       # TODO Add occasional greedy choice.
       X_random = self.random_X()
@@ -182,7 +189,7 @@ class World:
       # Add to node list if it's not in collision.
       if not self.has_collision(X_nearest, X_new):
         # Note: This does not yet contain X_new
-        neighbor_idxs = tree.near_idxs(position=X_new, radius=1.0)
+        neighbor_idxs = tree.near_idxs(position=X_new, radius=2.0)
         # Connect X_new to best "near" node.
         best_parent = nearest_node_idx
         # Cost to traverse is euclidean distance in X.
@@ -224,7 +231,7 @@ class World:
 
         # Plot
         ax.scatter(X_new[0], X_new[1], c='black')
-        ax.annotate(str(n_new_idx), (X_new[0] + 0.1, X_new[1] + 0.1), c='blue')
+        # ax.annotate(str(n_new_idx), (X_new[0] + 0.1, X_new[1] + 0.1), c='blue')
         X_parent = tree.nodes[n_new.parent].position
         ax.plot(np.array([X_parent[0], X_new[0]]), np.array([X_parent[1], X_new[1]]), 'black')
 
@@ -240,8 +247,10 @@ class World:
       goal_path = list(reversed(goal_path))
       print(f"path through {goal_node_idx}: {goal_path}")
       print("cost:", tree.nodes[goal_node_idx].cost)
-    plt.show()
+
+    self.plot_obstacles(ax)
 
 
 w = World()
 w.rrt_star()
+plt.show()
