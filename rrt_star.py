@@ -1,5 +1,5 @@
 import numpy as np
-# from scipy.sparse import lil_matrix
+import random
 
 
 class Node:
@@ -17,8 +17,6 @@ class Tree:
   def __init__(self, root):
     self.max_nodes = 10000
     self.nodes = [root]
-    # (Symmetric) adjacency matrix.
-    # self.edges = lil_maxtrix((self.max_nodes, self.max_nodes), dtype=np.float)
     self.goal_node_idxs = []
 
   def add(self, node):
@@ -50,7 +48,7 @@ class World:
   def __init__(self):
     self.xrange = [-10, 10]
     self.yrange = [-10, 10]
-    self.initial_state = [0, 0]
+    self.initial_position = (0,0)
     # Refers to Z dimension.
     self.goal_pose_z = 5
     # Distance at which to create new nodes from network.
@@ -59,26 +57,26 @@ class World:
     self.precision = 0.25
 
     num_obstacles = 2
-    self.obstacles = obstacles(xrange, yrange, num_obstacles)
+    self.obstacles = self.make_obstacles(self.xrange, self.yrange, num_obstacles)
 
-  @staticfunction
+  @staticmethod
   def distance(position1, position2):
     x1, y1 = position1
     x2, y2 = position2
     return sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-  @staticfunction
-  def obstacles(xrange, yrange, num_obstacles):
+  @staticmethod
+  def make_obstacles(xrange, yrange, num_obstacles):
     obstacles = []
     for i in range(num_obstacles):
       # Box obstacles
-      xmin = random.uniform(xrange)
-      xmax = random.uniform(xrange)
+      xmin = random.uniform(*xrange)
+      xmax = random.uniform(*xrange)
       if xmax < xmin:
         xmin, xmax = xmax, xmin
 
-      ymin = random.uniform(xrange)
-      ymax = random.uniform(xrange)
+      ymin = random.uniform(*yrange)
+      ymax = random.uniform(*yrange)
       if ymax < ymin:
         ymin, ymax = ymax, ymin
 
@@ -129,7 +127,7 @@ class World:
     return z
 
   def random_X(self):
-    return (random.uniform(self.xrange), random.uniform(self.yrange))
+    return (random.uniform(*self.xrange), random.uniform(*self.yrange))
 
   def steer(self, root_position, goal_position):
     d = self.distance(root_position, goal_position)
@@ -152,9 +150,9 @@ class World:
     max_expansion = 10
     for i in range(max_expansion):
       # TODO Add occasional greedy choice.
-      X_random = random_X()
-      nearest_node_idx = T.nearest(X_random)
-      X_nearest = T.nodes[nearest_node_idx].position
+      X_random = self.random_X()
+      nearest_node_idx = tree.nearest(X_random)
+      X_nearest = tree.nodes[nearest_node_idx].position
       X_new = self.steer(X_nearest, X_random)
 
       # Add to node list if it's not in collision.
@@ -204,3 +202,6 @@ class World:
         parent = tree.nodes[parent].parent
       print(f"path through {goal_node_idx}: {goal_path}")
       print("cost:", tree.nodes[goal_node_idx].cost)
+
+w = World()
+w.rrt_star()
