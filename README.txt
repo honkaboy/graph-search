@@ -1,2 +1,3 @@
-Basic RRT* where the goal space and state space are different. Works as far as I can tell. Still
-has shortcomings as defined in the TODOs in the code.
+Dijktra, A*, BFS: Basic search algorithms on a graph in 2D Euclidean space.
+
+RRT*: goal space z= f(x,y) and state space X \in {x,y} are different.

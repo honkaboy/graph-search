@@ -192,9 +192,7 @@ class World:
       if not self.has_collision(X_nearest, X_new):
         # Note: This does not yet contain X_new
         neighbor_idxs = tree.near_idxs(position=X_new, radius=2.0)
-        # Connect X_new to best "near" node.
-        best_parent = nearest_node_idx
-        # Cost to traverse is euclidean distance in X.
+        # Connect X_new to best "near" node. Cost to traverse is euclidean distance in X.
         n_nearest = tree.nodes[nearest_node_idx]
         best_parent_idx = nearest_node_idx
         # Minimum cost to get to X_new through neighbors.
